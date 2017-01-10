@@ -40,16 +40,16 @@ class UserLoginAPIView(APIView):
 		serializer = UserLoginSerializer(data=request.data)
 		if serializer.is_valid():
 			data = serializer.data
-			user = auth.authenticate(username=data['username'], password=data['password'])
+			user = auth.authenticate(username=data['phoneNumber'], password=data['password'])
 			if user is not None:
 				token = generate_token_for_user(uid=user.id)
 				return success_response({u'uid': user.id, u'token': token})
 			else:
 				try:
-					User.objects.get(username=data['username'])
-					return failure_response(ERROR_CODE.AUTH_ERROR, u'用户名或密码错误')
+					User.objects.get(username=data['phoneNumber'])
+					return failure_response(ERROR_CODE.AUTH_ERROR, u'手机号与密码不匹配')
 				except User.DoesNotExist:
-					return failure_response(ERROR_CODE.AUTH_ERROR, u'用户名不存在')
+					return failure_response(ERROR_CODE.AUTH_ERROR, u'该手机号未注册')
 		else:
 			return failure_response(ERROR_CODE.SERIALIZER_ERROR, str(serializer.errors))
 
@@ -61,14 +61,15 @@ class UserRegisterAPIView(APIView):
 
 			# 检查用户名是否可用
 			try:
-				User.objects.get(username=data['username'])
-				return failure_response(ERROR_CODE.FAILED, u'用户名已存在,请登录')
+				User.objects.get(username=data['phoneNumber'])
+				return failure_response(ERROR_CODE.FAILED, u'改手机号已注册,请登录')
 			except User.DoesNotExist:
 				pass
 
 			# 创建新用户
-			user = User.objects.create(username=data['username'])
+			user = User.objects.create(username = data['phoneNumber'])
 			user.set_password(data['password'])
+			user.phoneNumber = data['phoneNumber']
 			user.save()
 			UserPermission.objects.create(user=user)
 
